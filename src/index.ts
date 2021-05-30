@@ -19,6 +19,10 @@ class ChangeDetector {
         this._verbose = verbose;
     }
 
+    get verbose() {
+        return this._verbose
+    }
+
     async addModule(moduleName: string) {
         let mod: any = await this.findFile(path, `${moduleName}.module.ts`)
         let modComponents = await this.extractComponentsFromModule(mod.fullPath)
@@ -30,17 +34,35 @@ class ChangeDetector {
         this._workingComponents.push(component)
     }
 
-    get verbose() {
-        return this._verbose
+    async extractComponentsFromModule(modulePath: string) {
+        const lineReader = new lineByLine(modulePath);
+        let lineObj;
+        let line;
+        const components: Array<EntryInfo> = []
+
+        while (lineObj = lineReader.next()) {
+            line = lineObj.toString('ascii')
+            if (line.includes("import") && line.includes("from") && line.includes(".component")) {
+                const imprtArr = line.split('/')
+
+                const componentName = `${imprtArr[imprtArr.length - 1].replace(/[^a-zA-Z\-\.]/g, "")}.ts`
+                const fileInfo: EntryInfo = await this.findFile(path, componentName)
+                components.push(fileInfo)
+            }
+        }
+        return components;
     }
 
-    cleanComponents() {
-        if (this.verbose) console.log("Removing change detector code from:")
-        
-        this._workingComponents.forEach(file => {
-            if (this.verbose) console.log(file.basename.replace(".ts",""))
-            this.clean(file.fullPath)
-        })
+    async findFile(path: string, filter: string): Promise<EntryInfo> {
+        return await this.getFilesList(path, filter)
+            .then(files => files[0])
+            .catch(err => {
+                throw new Error(err)
+            })
+    }
+
+    async getFilesList(path: string, filter: string): Promise<Array<EntryInfo>> {
+        return await promise(path, { fileFilter: filter });
     }
 
     addCodeToComponents() {
@@ -52,30 +74,31 @@ class ChangeDetector {
         })
     }
 
-    generateCDFunction(name: string) {
-        return `\t${cdFunctionName} {\n\t\tconsole.log(\"[ ${name} component ] Change detection called\", this.__changeDetectorCounter__)\n\t\tthis.__changeDetectorCounter__++\n\t}`
+    cleanComponents() {
+        if (this.verbose) console.log("Removing change detector code from:")
+        
+        this._workingComponents.forEach(file => {
+            if (this.verbose) console.log(file.basename.replace(".ts",""))
+            this.clean(file.fullPath)
+        })
     }
 
-    // isBalanced([...str]) {
-    isBalanced(str: string) {
-        return Array.from(str).reduce((uptoPrevChar, thisChar) => {
-            ((thisChar === '{' && uptoPrevChar++ || thisChar === '}' && uptoPrevChar--));
-            return uptoPrevChar;
-        }, 0) === 0
+    addCode(tsFullPath: string, basename: string) {
+        const htmlFullPath = tsFullPath.replace(".ts", ".html")
+        this.addCodeToHtmlFile(htmlFullPath)
+        this.addCodeToTSFile(tsFullPath, basename)
     }
 
-    async findAndReplace(filename: string, findStr: string, changeTo: string) {
-        const options = {
-            files: filename,
-            from: findStr,
-            to: changeTo,
-        };
-        try {
-            const result = await replaceInFile(options)
-        }
-        catch (error) {
-            console.error('Error occurred:', error);
-        }
+    clean(tsFullPath: string) {
+        const htmlFullPath = tsFullPath.replace(".ts", ".html")
+        this.cleanHtmlFile(htmlFullPath)
+        this.cleanTSFile(tsFullPath)
+    }
+
+    async addCodeToHtmlFile(fullPath: string) {
+        return await appendFile(fullPath, `${cdHtmlTag}`, (err) => {
+            if (err) throw err;
+        });
     }
 
     addCodeToTSFile(fullPath: string, basename: string) {
@@ -95,24 +118,6 @@ class ChangeDetector {
                 }
             }
         });
-
-    }
-
-    async addCodeToHtmlFile(fullPath: string) {
-        return await appendFile(fullPath, `${cdHtmlTag}`, (err) => {
-            if (err) throw err;
-
-        });
-    }
-
-    addCode(tsFullPath: string, basename: string) {
-        const htmlFullPath = tsFullPath.replace(".ts", ".html")
-        this.addCodeToHtmlFile(htmlFullPath)
-        this.addCodeToTSFile(tsFullPath, basename)
-    }
-
-    toTitleCase(str: string) {
-        return str.charAt(0).toUpperCase() + str.slice(1);
     }
 
     cleanHtmlFile(fullPath: string) {
@@ -166,41 +171,33 @@ class ChangeDetector {
         }
     }
 
-    clean(tsFullPath: string) {
-        const htmlFullPath = tsFullPath.replace(".ts", ".html")
-        this.cleanHtmlFile(htmlFullPath)
-        this.cleanTSFile(tsFullPath)
+    toTitleCase(str: string) {
+        return str.charAt(0).toUpperCase() + str.slice(1);
     }
 
-    async getFilesList(path: string, filter: string): Promise<Array<EntryInfo>> {
-        return await promise(path, { fileFilter: filter });
+    isBalanced(str: string) {
+        return Array.from(str).reduce((uptoPrevChar, thisChar) => {
+            ((thisChar === '{' && uptoPrevChar++ || thisChar === '}' && uptoPrevChar--));
+            return uptoPrevChar;
+        }, 0) === 0
     }
 
-    async findFile(path: string, filter: string): Promise<EntryInfo> {
-        return await this.getFilesList(path, filter)
-            .then(files => files[0])
-            .catch(err => {
-                throw new Error(err)
-            })
-    }
-
-    async extractComponentsFromModule(modulePath: string) {
-        const lineReader = new lineByLine(modulePath);
-        let lineObj;
-        let line;
-        const components: Array<EntryInfo> = []
-
-        while (lineObj = lineReader.next()) {
-            line = lineObj.toString('ascii')
-            if (line.includes("import") && line.includes("from") && line.includes(".component")) {
-                const imprtArr = line.split('/')
-
-                const componentName = `${imprtArr[imprtArr.length - 1].replace(/[^a-zA-Z\-\.]/g, "")}.ts`
-                const fileInfo: EntryInfo = await this.findFile(path, componentName)
-                components.push(fileInfo)
-            }
+    async findAndReplace(filename: string, findStr: string, changeTo: string) {
+        const options = {
+            files: filename,
+            from: findStr,
+            to: changeTo,
+        };
+        try {
+            const result = await replaceInFile(options)
         }
-        return components;
+        catch (error) {
+            console.error('Error occurred:', error);
+        }
+    }
+
+    generateCDFunction(name: string) {
+        return `\t${cdFunctionName} {\n\t\tconsole.log(\"[ ${name} component ] Change detection called\", this.__changeDetectorCounter__)\n\t\tthis.__changeDetectorCounter__++\n\t}`
     }
 }
 
