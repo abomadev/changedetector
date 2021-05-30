@@ -207,7 +207,7 @@ const options: any =
     usage("Usage: -p <path>")
         .option("p", { alias: "path", describe: "Path to root directory of Angular project", type: "string", demandOption: true })
         .option("m", { alias: "module", describe: "Feature module to apply to", type: "string", demandOption: false })
-        .option("c", { alias: "component", describe: "Single component to apply", type: "string", demandOption: false })
+        .option("c", { alias: "component", describe: "Component to apply to", type: "string", demandOption: false })
         .option("undo", { describe: "Remove changes added by Change Detector", type: "boolean", demandOption: false })
         .option("v", { alias: "verbose", describe: "Output any logging", type: "boolean", demandOption: false })
         .argv;

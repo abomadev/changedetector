@@ -1,7 +1,7 @@
 {
-  "name": "changedetector",
-  "version": "1.0.0",
-  "description": "",
+  "name": "ng-changedetector",
+  "version": "1.0.1",
+  "description": "Command-line tool to help you identify the components slowing down your Angular application",
   "main": "lib/index.js",
   "bin": {
     "changedetector": "lib/index.js"
@@ -14,9 +14,22 @@
     "type": "git",
     "url": "git+https://github.com/abomadev/changedetector.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "changedetector",
+    "ng-changedetector",
+    "performance",
+    "angular performance",
+    "change detection",
+    "onPush",
+    "on push",
+    "angular",
+    "ng",
+    "angular tools",
+    "ng tools",
+    "performance tools"
+  ],
+  "author": "Aboma Kelly",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/abomadev/changedetector/issues"
   },
