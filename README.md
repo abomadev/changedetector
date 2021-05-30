@@ -17,11 +17,13 @@ npm install ng-changedetector --save-dev
 
 ## How does it work?
 
-Specify which Angular modules/components you want to run `changedetector` on and it will inject a few lines of code into the component's HTML and Typescript files. The injected code will cause the component to log to console everytime the component is re-rendered and incrementing a counter.
+Specify which Angular modules/components you want to run `changedetector` on and it will inject a few lines of code into the component's HTML and Typescript files (don't worry, you can [easily remove](#clean-up) the changes). The injected code will enable the component to increment a counter and log to your brower console everytime the component is re-rendered.
 
-This will allow you to identify components which are being rendered more often than they should and potentially causing performance issues within your application.
+This will allow you to identify components which are being rendered more often than expected and potentially causing performance issues within your application.
 
-Adding performance optimisations on those components, such as implementing the OnPush change detection strategy, will improve your applications performance and overal user experience. 
+Now add performance optimisations to those components, such as implementing the OnPush change detection strategy, to improve your application's performance and overal user experience. That part is up to use.
+
+Once you're done, simply [remove the code](#clean-up) `changedetector` injected.
 
 
 ## Usage

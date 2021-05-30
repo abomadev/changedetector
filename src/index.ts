@@ -23,15 +23,21 @@ class ChangeDetector {
         return this._verbose
     }
 
-    async addModule(moduleName: string) {
-        let mod: any = await this.findFile(path, `${moduleName}.module.ts`)
-        let modComponents = await this.extractComponentsFromModule(mod.fullPath)
-        this._workingComponents.push(...modComponents)
+    async addModule(module: string | Array<string>) {
+        const modules: Array<string> = typeof module === 'string' ? [module] : module;
+        for (const moduleName of modules) {
+            const moduleInfo: any = await this.findFile(path, `${moduleName}.module.ts`)
+            const moduleComponents = await this.extractComponentsFromModule(moduleInfo.fullPath)
+            this._workingComponents.push(...moduleComponents)
+        }
     }
 
-    async addComponent(componentName: string) {
-        const component: EntryInfo = await this.findFile(path, `${componentName}.component.ts`)
-        this._workingComponents.push(component)
+    async addComponent(component: string | Array<string>) {
+        const components: Array<string> = typeof component === 'string' ? [component] : component;
+        for (const componentName of components) {
+            const componentInfo: EntryInfo = await this.findFile(path, `${componentName}.component.ts`)
+            this._workingComponents.push(componentInfo)
+        }
     }
 
     async extractComponentsFromModule(modulePath: string) {
@@ -215,8 +221,6 @@ const options: any =
 
 const path = options.path
 
-// console.log({ options })
-// console.log(typeof options.c)
 access(`${path}/angular.json`, async (err) => {
     if (!!err) {
         console.log("Not an Angular Directory");
@@ -224,10 +228,9 @@ access(`${path}/angular.json`, async (err) => {
     } else {
         const changeDetector = new ChangeDetector(!!options.verbose)
         if (options.module) {
-            // Need to handle the case of multiple 
             await changeDetector.addModule(options.module)
         }
-
+        
         if (options.component) {
             await changeDetector.addComponent(options.component)
         }
