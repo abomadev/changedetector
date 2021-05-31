@@ -10,7 +10,6 @@ const cdFunctionName = "__changeDectector__()"
 const cdCallCounter = "\tprivate __changeDetectorCounter__ = 0"
 const cdHtmlTag = `<label id=\"__changeDetector__\" hidden>{{ ${cdFunctionName} }}</label>`
 
-
 class ChangeDetector {
     private _verbose = false;
     private _workingComponents: Array<EntryInfo> = []
