@@ -26,25 +26,35 @@ class ChangeDetector {
     async addModule(module: string | Array<string>) {
         const modules: Array<string> = typeof module === 'string' ? [module] : module;
         for (const moduleName of modules) {
-            const moduleInfo: any = await this.findFile(path, `${moduleName}.module.ts`)
-            const moduleComponents = await this.extractComponentsFromModule(moduleInfo.fullPath)
-            this._workingComponents.push(...moduleComponents)
+            try {
+                const moduleInfo: any = await this.findFile(path, `${moduleName}.module.ts`)
+                const moduleComponents = await this.extractComponentsFromModule(moduleInfo)
+                this._workingComponents.push(...moduleComponents)
+            } catch (error) {
+                console.error(error)
+            }
         }
     }
 
     async addComponent(component: string | Array<string>) {
         const components: Array<string> = typeof component === 'string' ? [component] : component;
         for (const componentName of components) {
-            const componentInfo: EntryInfo = await this.findFile(path, `${componentName}.component.ts`)
-            this._workingComponents.push(componentInfo)
+            try {
+                const componentInfo: EntryInfo = await this.findFile(path, `${componentName}.component.ts`)
+                this._workingComponents.push(componentInfo)
+            } catch (error) {
+                console.error(error)
+            }
         }
     }
 
-    async extractComponentsFromModule(modulePath: string) {
-        const lineReader = new lineByLine(modulePath);
+    async extractComponentsFromModule(moduleInfo: EntryInfo) {
+        const lineReader = new lineByLine(moduleInfo.fullPath);
         let lineObj;
         let line;
         const components: Array<EntryInfo> = []
+
+        if (this.verbose) console.log(`\nLocating components imported by ${moduleInfo.basename}:`)
 
         while (lineObj = lineReader.next()) {
             line = lineObj.toString('ascii')
@@ -53,6 +63,8 @@ class ChangeDetector {
 
                 const componentName = `${imprtArr[imprtArr.length - 1].replace(/[^a-zA-Z\-\.]/g, "")}.ts`
                 const fileInfo: EntryInfo = await this.findFile(path, componentName)
+                
+                if (this.verbose) console.log(" *",fileInfo.basename.replace(".ts", ""))
                 components.push(fileInfo)
             }
         }
@@ -61,9 +73,14 @@ class ChangeDetector {
 
     async findFile(path: string, filter: string): Promise<EntryInfo> {
         return await this.getFilesList(path, filter)
-            .then(files => files[0])
+            .then(files => {
+                if (files.length === 0){ 
+                    throw new Error(`File ${filter} not found`)
+                }
+                return files[0]
+            })
             .catch(err => {
-                throw new Error(err)
+                throw err
             })
     }
 
@@ -72,19 +89,22 @@ class ChangeDetector {
     }
 
     addCodeToComponents() {
-        if (this.verbose) console.log("Adding change detector code to:")
+        this.removeDuplicateComponentsInList()
+        console.log("\nAdding change detector code to:")
 
         this._workingComponents.forEach(file => {
-            if (this.verbose) console.log(file.basename.replace(".ts",""))
+            console.log(" -",file.basename.replace(".ts", ""))
             this.addCode(file.fullPath, file.basename)
         })
     }
 
     cleanComponents() {
-        if (this.verbose) console.log("Removing change detector code from:")
-        
+        this.removeDuplicateComponentsInList()
+
+        console.log("\nRemoving change detector code from:")
+
         this._workingComponents.forEach(file => {
-            if (this.verbose) console.log(file.basename.replace(".ts",""))
+            console.log(" -",file.basename.replace(".ts", ""))
             this.clean(file.fullPath)
         })
     }
@@ -205,6 +225,10 @@ class ChangeDetector {
     generateCDFunction(name: string) {
         return `\t${cdFunctionName} {\n\t\tconsole.log(\"[ ${name} component ] Change detection called\", this.__changeDetectorCounter__)\n\t\tthis.__changeDetectorCounter__++\n\t}`
     }
+
+    removeDuplicateComponentsInList(){
+        this._workingComponents = this._workingComponents.filter((e, i) => this._workingComponents.findIndex(a => a.basename === e.basename) === i);
+    }
 }
 
 
@@ -230,7 +254,7 @@ access(`${path}/angular.json`, async (err) => {
         if (options.module) {
             await changeDetector.addModule(options.module)
         }
-        
+
         if (options.component) {
             await changeDetector.addComponent(options.component)
         }
