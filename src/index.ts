@@ -232,13 +232,17 @@ class ChangeDetector {
 
 
 
-const options: any =
-    usage("Usage: -p <path>")
+const options: any = 
+        usage("Usage: $0 -p <path> [options]")
         .option("p", { alias: "path", describe: "Path to root directory of Angular project", type: "string", demandOption: true })
         .option("m", { alias: "module", describe: "Feature module to apply to", type: "string", demandOption: false })
         .option("c", { alias: "component", describe: "Component to apply to", type: "string", demandOption: false })
         .option("undo", { describe: "Remove changes added by Change Detector", type: "boolean", demandOption: false })
         .option("v", { alias: "verbose", describe: "Output any logging", type: "boolean", demandOption: false })
+        .example('$0 -p ~/my-app -c home', 'Apply on component')
+        .example('$0 -p ~/my-app -m dashboard', 'Apply on module')
+        .example('$0 -p ~/my-app -c home -c navbar -m dashboard', 'Apply on mulitple components/modules')
+        .example('$0 -p ~/my-app -c home -m dashboard --undo', 'Remove injected code from components')
         .argv;
 
 
@@ -249,6 +253,12 @@ access(`${path}/angular.json`, async (err) => {
         console.log("Not an Angular Directory");
         return
     } else {
+
+        if (!options.module && !options.component){
+            console.log("\nPlease specify a component (-c) or feature module (-m)\n")
+            return
+        }
+
         const changeDetector = new ChangeDetector(!!options.verbose)
         if (options.module) {
             await changeDetector.addModule(options.module)

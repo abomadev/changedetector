@@ -1,6 +1,6 @@
 {
   "name": "ng-changedetector",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Command-line tool to help you identify the components slowing down your Angular application",
   "main": "lib/index.js",
   "bin": {
