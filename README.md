@@ -27,7 +27,7 @@ Once you're done, you can simply [remove the code](#clean-up) injected by `chang
 
 
 
->If you need more optimization techniques, [@mgechev](https://twitter.com/mgechev) was kind enough to compile a checklist which you can find [here](https://github.com/mgechev/angular-performance-checklist).
+>If you need more optimization techniques, [@mgechev](https://twitter.com/mgechev) compiled an awesome checklist on Angular Performance which you can find [here](https://github.com/mgechev/angular-performance-checklist).
 
 ## Usage
 
