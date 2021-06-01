@@ -1,6 +1,6 @@
 {
   "name": "ng-changedetector",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Command-line tool to help you identify the components slowing down your Angular application",
   "main": "lib/index.js",
   "bin": {
@@ -36,6 +36,7 @@
   },
   "homepage": "https://github.com/abomadev/changedetector#readme",
   "dependencies": {
+    "glob": "^7.1.7",
     "line-reader": "^0.4.0",
     "n-readlines": "^1.0.1",
     "readdirp": "^3.6.0",

@@ -4,17 +4,27 @@ import { replaceInFile } from 'replace-in-file';
 import { usage, option } from 'yargs';
 import { promise, EntryInfo } from 'readdirp';
 import { access, appendFile, writeFile } from 'fs';
+var glob = require("glob")
 const lineByLine = require('n-readlines');
 
 const cdFunctionName = "__changeDectector__()"
 const cdCallCounter = "\tprivate __changeDetectorCounter__ = 0"
 const cdHtmlTag = `<label id=\"__changeDetector__\" hidden>{{ ${cdFunctionName} }}</label>`
 
+interface FileInfo {
+    fullPath: string;
+    basename: string;
+}
+
 class ChangeDetector {
     private _verbose = false;
-    private _workingComponents: Array<EntryInfo> = []
+    private _workingComponents: Array<FileInfo> = []
+    private _appModules;
+    private _appComponents;
 
-    constructor(verbose: boolean) {
+    constructor(modules: Array<string>, components: Array<string>, verbose: boolean) {
+        this._appModules = modules;
+        this._appComponents = components;
         this._verbose = verbose;
     }
 
@@ -26,7 +36,7 @@ class ChangeDetector {
         const modules: Array<string> = typeof module === 'string' ? [module] : module;
         for (const moduleName of modules) {
             try {
-                const moduleInfo: any = await this.findFile(path, `${moduleName}.module.ts`)
+                const moduleInfo: any = this.findAppFile(moduleName, "module")
                 const moduleComponents = await this.extractComponentsFromModule(moduleInfo)
                 this._workingComponents.push(...moduleComponents)
             } catch (error) {
@@ -39,7 +49,7 @@ class ChangeDetector {
         const components: Array<string> = typeof component === 'string' ? [component] : component;
         for (const componentName of components) {
             try {
-                const componentInfo: EntryInfo = await this.findFile(path, `${componentName}.component.ts`)
+                const componentInfo: any = this.findAppFile(componentName, "component")
                 this._workingComponents.push(componentInfo)
             } catch (error) {
                 console.error(error)
@@ -47,11 +57,11 @@ class ChangeDetector {
         }
     }
 
-    async extractComponentsFromModule(moduleInfo: EntryInfo) {
+    async extractComponentsFromModule(moduleInfo: FileInfo) {
         const lineReader = new lineByLine(moduleInfo.fullPath);
         let lineObj;
         let line;
-        const components: Array<EntryInfo> = []
+        const components: Array<FileInfo> = []
 
         if (this.verbose) console.log(`\nLocating components imported by ${moduleInfo.basename}:`)
 
@@ -60,11 +70,11 @@ class ChangeDetector {
             if (line.includes("import") && line.includes("from") && line.includes(".component")) {
                 const imprtArr = line.split('/')
 
-                const componentName = `${imprtArr[imprtArr.length - 1].replace(/[^a-zA-Z\-\.]/g, "")}.ts`
-                const fileInfo: EntryInfo = await this.findFile(path, componentName)
-                
-                if (this.verbose) console.log(" *",fileInfo.basename.replace(".ts", ""))
-                components.push(fileInfo)
+                const componentName = `${imprtArr[imprtArr.length - 1].replace(".component", "").replace(/[^a-zA-Z\-\.]/g, "")}`
+                const componentInfo: any = this.findAppFile(componentName, "component")
+
+                if (this.verbose) console.log(" *", componentInfo.basename.replace(".ts", ""))
+                components.push(componentInfo)
             }
         }
         return components;
@@ -73,7 +83,7 @@ class ChangeDetector {
     async findFile(path: string, filter: string): Promise<EntryInfo> {
         return await this.getFilesList(path, filter)
             .then(files => {
-                if (files.length === 0){ 
+                if (files.length === 0) {
                     throw new Error(`File ${filter} not found`)
                 }
                 return files[0]
@@ -83,16 +93,26 @@ class ChangeDetector {
             })
     }
 
+    findAppFile(name: string, fileType: "component" | "module"): FileInfo | undefined {
+        const file = fileType === "module"
+            ? this._appModules.find(module => module.includes(`${name}.module.ts`))
+            : this._appComponents.find(component => component.includes(`${name}.component.ts`))
+
+        if (!file) { throw new Error(`File ${name}.${fileType}.ts not found`) }
+
+        return file ? { fullPath: file, basename: this.basename(file) } : undefined
+    }
+
     async getFilesList(path: string, filter: string): Promise<Array<EntryInfo>> {
         return await promise(path, { fileFilter: filter });
     }
 
     addCodeToComponents() {
         this.removeDuplicateComponentsInList()
-        console.log("\nAdding change detector code to:")
+        if (this._workingComponents.length > 0) console.log("\nAdding change detector code to:")
 
         this._workingComponents.forEach(file => {
-            console.log(" -",file.basename.replace(".ts", ""))
+            console.log(" -", file.basename.replace(".ts", ""))
             this.addCode(file.fullPath, file.basename)
         })
     }
@@ -103,7 +123,7 @@ class ChangeDetector {
         console.log("\nRemoving change detector code from:")
 
         this._workingComponents.forEach(file => {
-            console.log(" -",file.basename.replace(".ts", ""))
+            console.log(" -", file.basename.replace(".ts", ""))
             this.clean(file.fullPath)
         })
     }
@@ -225,15 +245,20 @@ class ChangeDetector {
         return `\t${cdFunctionName} {\n\t\tconsole.log(\"%c[ ${name} component ] Change detection called\", 'font-weight: bold;', this.__changeDetectorCounter__)\n\t\tthis.__changeDetectorCounter__++\n\t}`
     }
 
-    removeDuplicateComponentsInList(){
+    removeDuplicateComponentsInList() {
         this._workingComponents = this._workingComponents.filter((e, i) => this._workingComponents.findIndex(a => a.basename === e.basename) === i);
+    }
+
+    basename(fullPath: string) {
+        const arr = fullPath.split("/")
+        return arr[arr.length - 1]
     }
 }
 
 
 
-const options: any = 
-        usage("Usage: $0 -p <path> [options]")
+const options: any =
+    usage("Usage: $0 -p <path> [options]")
         .option("p", { alias: "path", describe: "Path to root directory of Angular project", type: "string", demandOption: true })
         .option("m", { alias: "module", describe: "Feature module to apply to", type: "string", demandOption: false })
         .option("c", { alias: "component", describe: "Component to apply to", type: "string", demandOption: false })
@@ -253,13 +278,15 @@ access(`${path}/angular.json`, async (err) => {
         console.log("Not an Angular Directory");
         return
     } else {
+        let appModules: string[] = glob.sync(`${path}/src/**/*module.ts`, { realpath: true });
+        let appComponents: string[] = glob.sync(`${path}/src/**/*component.ts`, { realpath: true })
 
-        if (!options.module && !options.component){
+        if (!options.module && !options.component) {
             console.log("\nPlease specify a component (-c) or feature module (-m)\n")
             return
         }
 
-        const changeDetector = new ChangeDetector(!!options.verbose)
+        const changeDetector = new ChangeDetector(appModules, appComponents, !!options.verbose)
         if (options.module) {
             await changeDetector.addModule(options.module)
         }
