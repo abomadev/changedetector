@@ -2,9 +2,8 @@
 import { eachLine } from 'line-reader';
 import { replaceInFile } from 'replace-in-file';
 import { usage, option } from 'yargs';
-import { promise, EntryInfo } from 'readdirp';
 import { access, appendFile, writeFile } from 'fs';
-var glob = require("glob")
+import { sync } from "glob";
 const lineByLine = require('n-readlines');
 
 const cdFunctionName = "__changeDectector__()"
@@ -80,19 +79,6 @@ class ChangeDetector {
         return components;
     }
 
-    async findFile(path: string, filter: string): Promise<EntryInfo> {
-        return await this.getFilesList(path, filter)
-            .then(files => {
-                if (files.length === 0) {
-                    throw new Error(`File ${filter} not found`)
-                }
-                return files[0]
-            })
-            .catch(err => {
-                throw err
-            })
-    }
-
     findAppFile(name: string, fileType: "component" | "module"): FileInfo | undefined {
         const file = fileType === "module"
             ? this._appModules.find(module => module.includes(`${name}.module.ts`))
@@ -101,10 +87,6 @@ class ChangeDetector {
         if (!file) { throw new Error(`File ${name}.${fileType}.ts not found`) }
 
         return file ? { fullPath: file, basename: this.basename(file) } : undefined
-    }
-
-    async getFilesList(path: string, filter: string): Promise<Array<EntryInfo>> {
-        return await promise(path, { fileFilter: filter });
     }
 
     addCodeToComponents() {
@@ -278,8 +260,9 @@ access(`${path}/angular.json`, async (err) => {
         console.log("Not an Angular Directory");
         return
     } else {
-        let appModules: string[] = glob.sync(`${path}/src/**/*module.ts`, { realpath: true });
-        let appComponents: string[] = glob.sync(`${path}/src/**/*component.ts`, { realpath: true })
+        // Use glob to get lists of modules and component
+        let appModules: string[] = sync(`${path}/src/**/*module.ts`, { realpath: true });
+        let appComponents: string[] = sync(`${path}/src/**/*component.ts`, { realpath: true })
 
         if (!options.module && !options.component) {
             console.log("\nPlease specify a component (-c) or feature module (-m)\n")
