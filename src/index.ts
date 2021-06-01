@@ -222,7 +222,7 @@ class ChangeDetector {
     }
 
     generateCDFunction(name: string) {
-        return `\t${cdFunctionName} {\n\t\tconsole.log(\"[ ${name} component ] Change detection called\", this.__changeDetectorCounter__)\n\t\tthis.__changeDetectorCounter__++\n\t}`
+        return `\t${cdFunctionName} {\n\t\tconsole.log(\"%c[ ${name} component ] Change detection called\", 'font-weight: bold;', this.__changeDetectorCounter__)\n\t\tthis.__changeDetectorCounter__++\n\t}`
     }
 
     removeDuplicateComponentsInList(){
