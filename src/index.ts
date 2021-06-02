@@ -2,7 +2,7 @@
 import { eachLine } from 'line-reader';
 import { replaceInFile } from 'replace-in-file';
 import { usage, option } from 'yargs';
-import { access, appendFile, writeFile } from 'fs';
+import { access, appendFile, writeFile, readFile } from 'fs';
 import { sync } from "glob";
 const lineByLine = require('n-readlines');
 
@@ -31,12 +31,12 @@ class ChangeDetector {
         return this._verbose
     }
 
-    async addModule(module: string | Array<string>) {
+    addModule(module: string | Array<string>) {
         const modules: Array<string> = typeof module === 'string' ? [module] : module;
         for (const moduleName of modules) {
             try {
                 const moduleInfo: any = this.findAppFile(moduleName, "module")
-                const moduleComponents = await this.extractComponentsFromModule(moduleInfo)
+                const moduleComponents = this.extractComponentsFromModule(moduleInfo)
                 this._workingComponents.push(...moduleComponents)
             } catch (error) {
                 console.error(error)
@@ -44,7 +44,7 @@ class ChangeDetector {
         }
     }
 
-    async addComponent(component: string | Array<string>) {
+    addComponent(component: string | Array<string>) {
         const components: Array<string> = typeof component === 'string' ? [component] : component;
         for (const componentName of components) {
             try {
@@ -56,13 +56,13 @@ class ChangeDetector {
         }
     }
 
-    async extractComponentsFromModule(moduleInfo: FileInfo) {
+    extractComponentsFromModule(moduleInfo: FileInfo) {
         const lineReader = new lineByLine(moduleInfo.fullPath);
         let lineObj;
         let line;
         const components: Array<FileInfo> = []
 
-        if (this.verbose) console.log(`\nLocating components imported by ${moduleInfo.basename}:`)
+        if (this.verbose) console.log(`\nFinding components imported by ${moduleInfo.basename}:`)
 
         while (lineObj = lineReader.next()) {
             line = lineObj.toString('ascii')
@@ -93,8 +93,7 @@ class ChangeDetector {
         this.removeDuplicateComponentsInList()
         if (this._workingComponents.length > 0) console.log("\nAdding change detector code to:")
 
-        this._workingComponents.forEach(file => {
-            console.log(" -", file.basename.replace(".ts", ""))
+        this._workingComponents.forEach( async file => {
             this.addCode(file.fullPath, file.basename)
         })
     }
@@ -111,9 +110,22 @@ class ChangeDetector {
     }
 
     addCode(tsFullPath: string, basename: string) {
-        const htmlFullPath = tsFullPath.replace(".ts", ".html")
-        this.addCodeToHtmlFile(htmlFullPath)
-        this.addCodeToTSFile(tsFullPath, basename)
+        const componetName = basename.replace(".ts", "")
+        readFile(tsFullPath, (err, data) => {
+            if (err)
+                throw err;
+
+           if (!data.includes("__changeDectector")){
+               console.log(" -", componetName)
+
+               const htmlFullPath = tsFullPath.replace(".ts", ".html")
+               this.addCodeToHtmlFile(htmlFullPath)
+               this.addCodeToTSFile(tsFullPath, basename)
+           } else {
+               console.log(" -", componetName, "(skipped)")
+               if (this.verbose) console.log(`   Skipping ${componetName}: already contains change detector code\n`)
+           }
+        });
     }
 
     clean(tsFullPath: string) {
@@ -283,7 +295,6 @@ access(`${path}/angular.json`, async (err) => {
         } else {
             changeDetector.addCodeToComponents()
         }
-
     }
 });
 
