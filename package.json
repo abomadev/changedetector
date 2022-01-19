@@ -9,7 +9,9 @@
   "types": "lib",
   "scripts": {
     "build": "tsc -p .",
-    "build:publish": "npm run build && npm publish"
+    "build:publish": "npm run build && npm publish",
+    "lint": "eslint . --ext .ts",
+    "lint-and-fix": "eslint . --ext .ts --fix"
   },
   "repository": {
     "type": "git",
@@ -48,6 +50,9 @@
     "@types/n-readlines": "^1.0.1",
     "@types/node": "^15.6.1",
     "@types/yargs": "^17.0.0",
+    "@typescript-eslint/eslint-plugin": "^5.10.0",
+    "@typescript-eslint/parser": "^5.10.0",
+    "eslint": "^8.7.0",
     "typescript": "^4.3.2"
   }
 }
