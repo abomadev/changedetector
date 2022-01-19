@@ -28,7 +28,7 @@ const options: any =
         .example('$0 -p ~/my-app -c home -m dashboard --undo', 'Remove injected code from components')
         .argv;
 
-const path = options.path;
+const path: string = options.path;
 
 // Ensure this only run on Angular projects by checking if the given path contains
 // the angular.json file
@@ -51,13 +51,16 @@ access(`${path}/angular.json`, async (err: NodeJS.ErrnoException | null) => {
         const changeDetector = new ChangeDetector(appModules, appComponents, !!options.verbose);
 
         if (options.module) {
+            // Add all components imported into the module(s) into list of components to work on.
             await changeDetector.addModule(options.module);
         }
 
         if (options.component) {
+            // Add component(s) into list of components to work on.
             await changeDetector.addComponent(options.component);
         }
 
+        // Add or remove ChangeDetector code snippets depending if the '--undo' flag is set
         if (options.undo) {
             changeDetector.cleanComponents();
         } else {

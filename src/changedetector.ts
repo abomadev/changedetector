@@ -27,7 +27,7 @@ export class ChangeDetector {
     }
 
     /**
-     * For all components imported into the module or modules, add into working list of components 
+     * For all components imported into the module or modules, add to the working list of components 
      * to perform operations on.
      *     
      * @param module Name of module or list of modules
@@ -48,7 +48,7 @@ export class ChangeDetector {
     }
 
     /**
-     * Add component or all listed components into the working list of components 
+     * Add component or all listed components to the working list of components 
      * to perform operations on.
      * 
      * @param component Name of component or list of components
