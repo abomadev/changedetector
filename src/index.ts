@@ -16,7 +16,7 @@ import { sync } from "glob";
 import { ChangeDetector } from "./changedetector"; 
 
 const options: any =
-    usage("Usage: $0 -p <path> [options]")
+    usage(`A command-line tool designed to help you identify the components slowing down your Angular application.\n\nUsage: $0 -p <path> [options]`)
         .option("p", { alias: "path", describe: "Path to root directory of Angular project", type: "string", demandOption: true })
         .option("m", { alias: "module", describe: "Feature module to apply to", type: "string", demandOption: false })
         .option("c", { alias: "component", describe: "Component to apply to", type: "string", demandOption: false })
@@ -30,7 +30,7 @@ const options: any =
 
 const path = options.path;
 
-// Determine if given path is an Angular project.
+// Check if given path is to an Angular project
 access(`${path}/angular.json`, async (err: NodeJS.ErrnoException | null) => {
     if (err) {
         console.log("Not an Angular Directory");

@@ -4,12 +4,18 @@ import { replaceInFile } from 'replace-in-file';
 import { appendFile, writeFile, readFile } from 'fs';
 import lineByLine = require('n-readlines');
 
+/** 
+ * Interface which defines the basename and full path of a file or folder
+*/
 interface FileInfo {
     fullPath: string;
     basename: string;
 }
 
-
+/** 
+ * Class representing the ChangeDetector object which used to inject code snippets into
+ * Angular component files in order to help identify which components slowing down the application.
+ */
 export class ChangeDetector {
     readonly CD_FUNCTION_NAME = "__changeDectector__()";
     readonly CD_CALL_COUNTER = "\tprivate __changeDetectorCounter__ = 0";
@@ -73,7 +79,9 @@ export class ChangeDetector {
      */
     addCodeToComponents(): void {
         this.removeDuplicateComponentsInList();
-        if (this._workingComponents.length > 0) { console.log("\nAdding change detector code to:") }
+        if (this._workingComponents.length > 0) { 
+            console.log("\nAdding change detector code to:") 
+        }
 
         this._workingComponents.forEach(async file => {
             this.addCode(file.fullPath, file.basename);
@@ -106,7 +114,9 @@ export class ChangeDetector {
         let line: string;
         const components: Array<FileInfo> = [];
 
-        if (this._verbose) { console.log(`\nFinding components imported by ${moduleInfo.basename}:`) }
+        if (this._verbose) { 
+            console.log(`\nFinding components imported by ${moduleInfo.basename}:`) 
+        }
 
         while (lineObj = lineReader.next()) {
             line = lineObj.toString('ascii');
@@ -118,7 +128,9 @@ export class ChangeDetector {
 
                 if (componentInfo) {
                     components.push(componentInfo);
-                    if (this._verbose) console.log(" *", componentInfo.basename.replace(".ts", ""));
+                    if (this._verbose) {
+                        console.log(" *", componentInfo.basename.replace(".ts", ""))
+                    };
                 }
             }
         }
@@ -137,7 +149,9 @@ export class ChangeDetector {
             ? this._appModules.find(module => module.includes(`${name}.module.ts`))
             : this._appComponents.find(component => component.includes(`${name}.component.ts`))
 
-        if (!file) { throw new Error(`File ${name}.${fileType}.ts not found`) }
+        if (!file) { 
+            throw new Error(`File ${name}.${fileType}.ts not found`); 
+        }
 
         return file ? { fullPath: file, basename: this.basename(file) } : undefined
     }
@@ -151,19 +165,21 @@ export class ChangeDetector {
     private addCode(tsFullPath: string, basename: string): void {
         const componetName = basename.replace(".ts", "")
         readFile(tsFullPath, (err, data) => {
-            if (err)
+            if (err){
                 throw err;
+            }
 
             if (!data.includes("__changeDectector")) {
                 console.log(" -", componetName)
 
                 const htmlFullPath = tsFullPath.replace(".ts", ".html")
                 this.addCodeToHtmlFile(htmlFullPath)
-                console.log(tsFullPath)
                 this.addCodeToTSFile(tsFullPath, basename)
             } else {
                 console.log(" -", componetName, "(skipped)")
-                if (this._verbose) console.log(`   Skipping ${componetName}: already contains change detector code\n`)
+                if (this._verbose) {
+                    console.log(`   Skipping ${componetName}: already contains change detector code\n`)
+                }
             }
         });
     }
@@ -186,12 +202,12 @@ export class ChangeDetector {
      */
     private async addCodeToHtmlFile(fullPath: string): Promise<void> {
         if(!fullPath.endsWith(".html")){
-            throw new Error("Invalid file type")
+            throw new Error("Invalid file type");
         }
 
-        await appendFile(fullPath, `${this.CD_HTML_TAG}`, (err) => {
+        await appendFile(fullPath, `${this.CD_HTML_TAG}`, (err: NodeJS.ErrnoException | null) => {
             if (err) {
-                throw err
+                throw err;
             };
         });
     }
@@ -240,8 +256,10 @@ export class ChangeDetector {
 
             cleaned += line.includes(this.CD_HTML_TAG) ? line.replace(this.CD_HTML_TAG, "") : line + "\n";
         }
-        writeFile(fullPath, cleaned, 'utf8', (err) => {
-            if (err) return console.log(err);
+        writeFile(fullPath, cleaned, 'utf8', (err: NodeJS.ErrnoException | null) => {
+            if (err) {
+                console.error(err);
+            }
         });
     }
 
@@ -267,7 +285,9 @@ export class ChangeDetector {
             original += line + "\n";
             keyInLine = line.includes(this.CD_FUNCTION_NAME);
 
-            if (keyInLine) { keyFound = true; }
+            if (keyInLine) { 
+                keyFound = true; 
+            }
 
             if (!line.includes(this.CD_CALL_COUNTER) && !keyFound && !keyInLine) {
                 cleaned += line + "\n";
