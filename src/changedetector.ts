@@ -3,14 +3,7 @@ import { eachLine } from 'line-reader';
 import { replaceInFile } from 'replace-in-file';
 import { appendFile, writeFile, readFile } from 'fs';
 import lineByLine = require('n-readlines');
-
-/** 
- * Interface which defines the basename and full path of a file or folder
-*/
-interface FileInfo {
-    fullPath: string;
-    basename: string;
-}
+import { FileInfo } from './file-info.model';
 
 /** 
  * Class representing the ChangeDetector object which used to inject code snippets into
@@ -79,8 +72,8 @@ export class ChangeDetector {
      */
     addCodeToComponents(): void {
         this.removeDuplicateComponentsInList();
-        if (this._workingComponents.length > 0) { 
-            console.log("\nAdding change detector code to:") 
+        if (this._workingComponents.length > 0) {
+            console.log("\nAdding change detector code to:");
         }
 
         this._workingComponents.forEach(async file => {
@@ -114,8 +107,8 @@ export class ChangeDetector {
         let line: string;
         const components: Array<FileInfo> = [];
 
-        if (this._verbose) { 
-            console.log(`\nFinding components imported by ${moduleInfo.basename}:`) 
+        if (this._verbose) {
+            console.log(`\nFinding components imported by ${moduleInfo.basename}:`);
         }
 
         while (lineObj = lineReader.next()) {
@@ -129,7 +122,7 @@ export class ChangeDetector {
                 if (componentInfo) {
                     components.push(componentInfo);
                     if (this._verbose) {
-                        console.log(" *", componentInfo.basename.replace(".ts", ""))
+                        console.log(" *", componentInfo.basename.replace(".ts", ""));
                     };
                 }
             }
@@ -147,13 +140,13 @@ export class ChangeDetector {
     private findAppFile(name: string, fileType: "component" | "module"): FileInfo | undefined {
         const file = fileType === "module"
             ? this._appModules.find(module => module.includes(`${name}.module.ts`))
-            : this._appComponents.find(component => component.includes(`${name}.component.ts`))
+            : this._appComponents.find(component => component.includes(`${name}.component.ts`));
 
-        if (!file) { 
-            throw new Error(`File ${name}.${fileType}.ts not found`); 
+        if (!file) {
+            throw new Error(`File ${name}.${fileType}.ts not found`);
         }
 
-        return file ? { fullPath: file, basename: this.basename(file) } : undefined
+        return file ? { fullPath: file, basename: this.basename(file) } : undefined;
     }
 
     /**
@@ -165,7 +158,7 @@ export class ChangeDetector {
     private addCode(tsFullPath: string, basename: string): void {
         const componetName = basename.replace(".ts", "")
         readFile(tsFullPath, (err, data) => {
-            if (err){
+            if (err) {
                 throw err;
             }
 
@@ -178,7 +171,7 @@ export class ChangeDetector {
             } else {
                 console.log(" -", componetName, "(skipped)")
                 if (this._verbose) {
-                    console.log(`   Skipping ${componetName}: already contains change detector code\n`)
+                    console.log(`   Skipping ${componetName}: already contains change detector code\n`);
                 }
             }
         });
@@ -201,7 +194,7 @@ export class ChangeDetector {
      * @param fullPath Path to the component's HTML file
      */
     private async addCodeToHtmlFile(fullPath: string): Promise<void> {
-        if(!fullPath.endsWith(".html")){
+        if (!fullPath.endsWith(".html")) {
             throw new Error("Invalid file type");
         }
 
@@ -219,7 +212,7 @@ export class ChangeDetector {
      * @param basename The basename of the components typescript file
      */
     private addCodeToTSFile(fullPath: string, basename: string): void {
-        if(!basename.endsWith(".ts")){
+        if (!basename.endsWith(".ts")) {
             throw new Error("Invalid file type")
         }
 
@@ -229,8 +222,8 @@ export class ChangeDetector {
 
         eachLine(fullPath, (line: string) => {
             if (line.includes(this.START_KEY) || original) {
-                original += line + "\n"
-                origWithChanges += origWithChanges ? line + "\n" : line + "\n" + this.CD_CALL_COUNTER + "\n"
+                original += line + "\n";
+                origWithChanges += origWithChanges ? line + "\n" : line + "\n" + this.CD_CALL_COUNTER + "\n";
                 if (this.isBalanced(original)) {
                     origWithChanges = origWithChanges.replace(/\}\n$/, `${this.generateCDFunction(componentName)}\n}\n`);
                     this.findAndReplace(fullPath, original, origWithChanges);
@@ -285,8 +278,8 @@ export class ChangeDetector {
             original += line + "\n";
             keyInLine = line.includes(this.CD_FUNCTION_NAME);
 
-            if (keyInLine) { 
-                keyFound = true; 
+            if (keyInLine) {
+                keyFound = true;
             }
 
             if (!line.includes(this.CD_CALL_COUNTER) && !keyFound && !keyInLine) {

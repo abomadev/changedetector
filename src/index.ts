@@ -13,7 +13,7 @@
 import { usage } from 'yargs';
 import { access } from 'fs';
 import { sync } from "glob";
-import { ChangeDetector } from "./changedetector"; 
+import { ChangeDetector } from "./changedetector";
 
 const options: any =
     usage(`A command-line tool designed to help you identify the components slowing down your Angular application.\n\nUsage: $0 -p <path> [options]`)
@@ -30,7 +30,8 @@ const options: any =
 
 const path = options.path;
 
-// Check if given path is to an Angular project
+// Ensure this only run on Angular projects by checking if the given path contains
+// the angular.json file
 access(`${path}/angular.json`, async (err: NodeJS.ErrnoException | null) => {
     if (err) {
         console.log("Not an Angular Directory");
